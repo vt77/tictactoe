@@ -67,7 +67,8 @@ __Nginx configuration example__
 We played with this alghoritm couple of hours. 
 It was very impressive to see how algo learns and becomes a real player from kiddy randomizer
 After about 1000 rounds the algo plays good enouph but still has many loses. 
-Now it plays much better. You can try it by your self and  [__Play DEMO__](https://vt77.com/tictactoe){:target="_blank"}
+
+Now it plays much better. You can try it by your self and  [__Play DEMO__](https://vt77.com/tictactoe)
 
 
 
