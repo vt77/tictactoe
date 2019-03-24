@@ -13,23 +13,19 @@ You may take ideas, but it's not intended to run in production environment.
 Is a kind of unsupervised ML where _agent_ communicating with _environment_ and learns to take _actions_ to earn best result
 Optionally some curiosity behavour may be implemented to give agent a chance to explore best strategy.
 
-__Q-Learning__ is a alghoritm (aka function) creating policy which tells agent what action can be performed in each environment state. Because agent cant't get score (and recaculate policy) immediatly after each action (move) it should "remember" all moves and states in the round and calculate _gradient_ of scores
+__Q-Learning__ is a alghoritm (aka function) creating policy which tells agent what action can be performed in each environment state. 
+Because agent can't get score (and recaculate policy) immediatly after each action (move) it should "remember" all moves and states in the round and calculate _gradient_ of scores
 
 
 ## About TicTacToe implementation 
-TicTacToe is a pure python implementation of Q-Learnig alghoritm. Used just for POC.
-
-Because of not big number of unique combinations it stores all seen "positions" in python dictionary. 
-
-The key is a _features vector_ build out of 3x3 squire board and packed to single integer.
-
-The value is a gradiented score related to board state
-
-Some curiosity implemented, so algoritm  can "improve" it's strategy during learning
+TicTacToe is a pure python implementation of Q-Learnig alghoritm. Used just for POC.  
+Because of not big number of unique combinations it stores all seen "positions" in python dictionary.   
+The key is a _features vector_ build out of 3x3 squire board and packed to single integer.  
+The value is a gradiented score related to board state  
+Some curiosity implemented, so algoritm  can "improve" it's strategy during learning  
 
 ### Installing and testing
-To test algorithm simple game.py script included in this project
-
+To test algorithm simple game.py script included in this project  
 Installing as simple as install new uwsgi process if you know exactly what you do. Check ttt.ini for more info.
 
 __Warning__ change user/group of running process. Running as root may make you system potencially vulnerable
