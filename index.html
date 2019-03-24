@@ -1,0 +1,404 @@
+<html>
+<head>
+<title>TicTacToe</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.js"></script>
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<meta name="google-signin-client_id" content="200430976035-u7h9l2e5vpn221qhbnr4eeqpjrkhlpje.apps.googleusercontent.com">
+<style>
+h1 {
+  text-align: center;
+}
+table {
+  margin: 5px auto;
+}
+
+.topscoretable{
+   margin: 0px 0px;
+   width:300px;
+}
+
+.topscoretable th{
+   background-color: #BEC9DC;
+   font-family: sans-serif;
+   font-size: x-large;
+}
+
+.topscoretable td{
+  padding: 5px 5px;
+}
+
+
+.avatar {
+    /* make a square container */
+    width: 64px;
+    height: 64px;
+
+    /* fill the container, preserving aspect ratio, and cropping to fit */
+    background-size: cover;
+
+    /* center the image vertically and horizontally */
+    background-position: top center;
+
+    /* round the edges to a circle with border radius 1/2 container size */
+    border-radius: 50%;
+
+    float:left;
+
+}
+
+#playerinfo{
+    width:300px;
+    display: block;
+    overflow: hidden
+}
+
+#userinfo, #userinfo i, #userinfo b{
+    display:block ;
+}
+
+#userinfo{
+    padding: 10px;
+    margin-left: 68px;
+}
+
+#playertitle{
+     background-color: #EAEAEA;
+}
+
+#login{
+    position:relative;
+    top: -345px;
+    left: 9px;
+    text-align:center;
+}
+
+.g-signin2 > div{
+  margin: 0 auto;
+}
+
+</style>
+</head>
+<body>
+<table>
+<tr><td style="width:300px;">
+<h1>Tic Tac Toe</h1>
+<canvas id="screen" width="352" height="331" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+<h1>&nbsp;
+<span id="login"><h4>SignIn</h4><div class="g-signin2" data-onsuccess="onSignIn"></div></span>
+<span id="youwin" style="color:green;display:none;">You win !</span>
+<span id="youlose" style="color:red;display:none;">You lose!</span>
+<span id="draw" style="color:#909090;display:none;">Draw!</span>
+&nbsp;<!-- button id="startnew" onclick="start_game();">Play again</button--></h1>
+<h1><span id="scorelbl">Score</span> : <span id="scoreh">0</span> : <span id="scoreai">0</span> </h1>
+</td>
+<td valign="top"  width="50%">
+<div id="playerinfo">
+</div>
+<div id="topscores">
+</div>
+</td>
+</tr>
+</table>
+
+<script>
+
+//Globals
+var uri = '/tictactoe/ai';
+var token = '';
+
+//Images is global to make it preloaded
+var image_background =new Image();
+    image_background.src='ttt-screen.png';
+
+var image_x =new Image();
+    image_x.src='ttx.png';
+
+var image_o =new Image();
+    image_o.src='tto.png';
+
+
+var MessageStrings = {
+    'NOT_YOUR_TURN':'Not your turn',
+    'ILLEGAL_MOVE' :'Illegal move',
+    'TOP_SCORES' : 'Top Scores'
+};
+
+
+
+function Board(b)
+{
+    self = this;
+    this.board = b;
+    this.clickarea = document.getElementById('screen');
+ 
+    $('#screen').on('mousedown', {target:this.clickarea},function(e){
+       self.in_click = true;
+       self.start_pos = self.getMousePos(e.data.target,e); 
+    });
+ 
+    $(window).on('mouseup',{target:this.clickarea},function(e){
+        if(!self.in_click)
+                return;
+        self.in_click = false;
+
+        if(self.busy)
+        {
+            show_alert('NOT_YOUR_TURN');
+            return;
+        }
+        pos = self.getMousePos(e.data.target,e); 
+        
+        //TODO: Check start_pos and pos not too far
+
+        x = Math.floor( (pos.x - 25 ) / 100 );
+        y = Math.floor( (pos.y - 15 ) / 100 );
+        cell = y * 3 + x; 
+       
+        if( cell < 0 || cell > 8 || self.board[cell] != 0 )
+        {
+            show_alert('ILLEGAL_MOVE');
+            return;
+        }
+
+        self.board[cell] = -1;
+        self.redraw();
+    
+        self.busy = true;
+
+        $('#screen').trigger( "boardclick", cell );
+    });
+
+    this.getMousePos = function(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+         return {
+            x: Math.floor( evt.clientX - rect.left ),
+            y: Math.floor( evt.clientY - rect.top )
+        };
+    }
+
+    /*
+     * Update visual elements
+     */
+    this.update = function(b,is_finished,winner,score_h,score_ai)
+    {
+        this.board = b;
+        this.redraw();
+        this.finished = is_finished;
+
+        $('#youwin').hide();
+        $('#youlose').hide(); 
+        $('#draw').hide();        
+
+        if( winner == -1 )
+        {
+            $('#youwin').show();
+        }else if( winner == 1 )
+        {
+            $('#youlose').show();
+        }else if(this.finished)
+        {
+            $('#draw').show(); 
+        }
+
+        if(score_h)
+        {
+            console.log("Update human score : " + score_h);
+            $('#scoreh').html(score_h);
+        }
+        if(score_ai)
+        {
+            console.log("Update AI score : " + score_ai);
+            $('#scoreai').html(score_ai); 
+        }
+
+        if(this.finished)
+        {
+            setTimeout(function(){
+                $('#screen').trigger( "startgame")
+            }, 2000);
+            
+            return;
+        }
+        
+        self.busy = false;
+    }
+
+   /*
+    *  Redraw board
+    */
+    this.redraw = function()
+    {
+        var c = document.getElementById("screen");
+        var ctx = c.getContext("2d");
+        ctx.drawImage(image_background, 0, 0); 
+
+        for(i=0;i<9;i++)
+        {
+            x = i % 3;
+            y = Math.floor(i / 3); 
+            //console.log("Cell X:i" + x + ' Y:' + y + ' B:' + this.board[i] );
+            if( this.board[i] == -1 )
+                    ctx.drawImage(image_x, x * 105 + 20 , 105 * y + 10 );
+            else if ( this.board[i] == 1 )
+            {  
+                ctx.drawImage(image_o, x * 105 + 20 , 105 * y + 10 );
+            }
+        }
+    }
+}
+
+/*
+ *  Protocol handler
+ */
+function GameHandler()
+{
+    this.canvas = document.getElementById('screen');
+    this.isDown = false;
+    this.board = new Board([0,0,0,0,0,0,0,0,]);
+
+    $('#screen').on('boardclick', {handler:this} ,function(e,cell)
+    {
+        console.log('Process move : ' + cell);
+        AjaxAdapter(uri,token).process(e.data.handler,'play',{move:cell});
+    });
+
+    $('#screen').on('startgame', {handler:this} ,function(e)
+    {
+        console.log('Start new game');
+        AjaxAdapter(uri,token).process(e.data.handler,'play',{start:1});
+    });    
+
+    this.onServerData = function(data)
+    {
+        //If we got new token, just update it
+        if(data.token)
+            token = data.token
+
+        var is_finished = data.finished ? true : false;
+        var winner = data.winner ? data.winner : false;
+        var score_h = data.score_h ? data.score_h : false;
+        var score_ai = data.score_ai ? data.score_ai : false;        
+
+        if(data.board)
+             this.board.update(data.board,is_finished,winner,score_h,score_ai);
+
+        if(data.bestscore)
+             update_bestscores(data.bestscore);
+    }
+}
+
+/*
+ *  Transport
+ */
+function AjaxAdapter(uri,token)
+{
+        this.uri = uri;
+        this.token = token;
+        this.process = function(handler,action,data)
+        {
+    
+            data['action'] = action;
+            data['token']  = this.token;
+
+            $.ajax({
+                url:uri,
+                data: JSON.stringify(data),
+                dataType: "json",
+                type: 'post',
+                contentType: "application/json; charset=utf-8",
+                success: function(data){ 
+                    console.log( data );
+                    if( data.success != 'yes' )
+                    {
+                        show_alert(data.error);
+                        return;
+                    }
+                    handler.onServerData(data);
+             },
+             error : function( jqXHR, textStatus, errorThrown )
+             {
+                //I'm too lazy to make it dynamic. Just hardcoded html code. It's ok for POC
+               $('#playerinfo').html("<b style='color:red'>Sorry, play server is unavailable at this time<br />Try later</b>"); 
+             }
+          });    
+        }
+
+        return this;
+}
+
+
+String.prototype.format = function() {
+  var template = this;
+  var data = arguments[0]; 
+  var reg = new RegExp("\\{([a-z_]+?)\\}", "gm");
+  var s = template.replace(reg,function(m,p1){
+         console.log(p1)
+         return data[p1];
+  });
+
+  return s;
+}
+
+
+var gamehandler = null;
+var user_info = {};
+
+function onSignIn(googleUser){
+  $('#login').hide();
+  var profile = googleUser.getBasicProfile(); 
+  user_info['id'] = profile.getId();
+  user_info['name'] = profile.getName();
+  user_info['image'] = profile.getImageUrl();
+  user_info['email'] = profile.getEmail();
+  console.log( user_info );
+  $('#playerinfo').html( new String(
+            '<div id="playertitle">'
+           +'<div id="avatar" class="avatar" style="background-image: url(\'{image}\');" ></div>'
+           +'<div id="userinfo"><b>{name}</b><i>{email}</i></div><div style="clear:both;"></div>'
+           +'<div id="bestscores"></div>'
+           ).format(user_info));  
+  gamehandler = new GameHandler();
+  AjaxAdapter(uri,token).process(gamehandler,'token',{userinfo:user_info}); 
+};
+
+
+function show_alert(msg)
+{
+    alert(MessageStrings[msg] || msg);
+}
+
+
+function update_bestscores(best_scores)
+{
+    var scores_html = '<table class="topscoretable"><tr><th colspan="3">'+ MessageStrings['TOP_SCORES'] +'</th></tr>';
+    for(i in best_scores)
+    {
+        data = best_scores[i]
+        console.log( data );
+        scores_html += '<tr><td><img src="{image}" class="avatar"></td><td>{name}<td>{score_h}:{score_ai}</td></td></tr>'.format(data);
+    }
+
+    scores_html += '</table>'
+    $('#topscores').html( scores_html );
+}
+
+
+function translate()
+{
+    var language = window.navigator.userLanguage || window.navigator.language;
+    console.log("Found language : " + language );
+    var script=document.createElement('script');
+    script.type='text/javascript';
+    script.src='translations/trans-'+language+'.js';
+    $("body").append(script);
+}
+
+translate();
+
+</script>
+
+</body>
+</html>
+
