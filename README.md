@@ -1,4 +1,4 @@
-#TicTacToe ML
+# TicTacToe ML
 
 --- 
 Simple pure python q-learning algorithm implementation
